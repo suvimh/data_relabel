@@ -46,8 +46,13 @@ export default function App() {
   async function handleStart(dataDir, labels, windowSize, hopSize) {
     try {
       const prog = await api.startSession(dataDir, labels, windowSize, hopSize)
+      const remaining = prog.time_remaining_sec ?? MAX_SESSION_SECONDS
       setProgress(prog)
-      setSession(prev => ({ ...prev, session_start_time: Date.now() / 1000 }))
+      setTimeLeft(remaining)
+      setSession(prev => ({
+        ...prev,
+        session_start_time: Date.now() / 1000 - (MAX_SESSION_SECONDS - remaining),
+      }))
       setAudioUrl(api.getSegmentAudioUrl() + '?t=' + Date.now())
       setStep('labelling')
       setMessage('')
@@ -59,8 +64,13 @@ export default function App() {
   async function handleResume() {
     try {
       const prog = await api.resumeSession()
+      const remaining = prog.time_remaining_sec ?? MAX_SESSION_SECONDS
       setProgress(prog)
-      setSession(prev => ({ ...prev, session_start_time: Date.now() / 1000 }))
+      setTimeLeft(remaining)
+      setSession(prev => ({
+        ...prev,
+        session_start_time: Date.now() / 1000 - (MAX_SESSION_SECONDS - remaining),
+      }))
       if (prog.done) {
         setMessage(prog.message || 'All files labelled!')
         setStep('summary')
@@ -168,10 +178,10 @@ function SetupPanel({ hasSession, session, message, onStart, onResume }) {
   const [labels, setLabels] = useState(
     session?.labels
       ? session.labels.filter(l => l !== 'noise' && l !== 'silence').join(', ')
-      : ''
+      : 'straight, vibrato, belt, breathy, unsure'
   )
-  const [windowSize, setWindowSize] = useState(session?.window_size || 1.0)
-  const [hopSize, setHopSize] = useState(session?.hop_size || 0.5)
+  const [windowSize, setWindowSize] = useState(session?.window_size ?? 0.5)
+  const [hopSize, setHopSize] = useState(session?.hop_size ?? 0.5)
 
   function handleSubmit(e) {
     e.preventDefault()
@@ -182,6 +192,36 @@ function SetupPanel({ hasSession, session, message, onStart, onResume }) {
   return (
     <div className="container">
       <h1>Audio Data Labelling Tool</h1>
+
+      <div className="instructions">
+        <h2>How to use this app</h2>
+        <ol>
+          <li>Set <strong>Data Directory</strong> to your parent folder of audio files (e.g. VocalSet relabel folder).</li>
+          <li>Enter custom labels below — <code>noise</code> and <code>silence</code> are added automatically.</li>
+          <li>Use <strong>Window</strong> and <strong>Hop</strong> of <code>0.5</code> for 0.5-second segments.</li>
+          <li>Click <strong>Start Labelling</strong> (or <strong>Resume Previous Session</strong> to continue).</li>
+          <li>Listen to each clip, tick <em>every</em> label that applies, then click <strong>Confirm Labels</strong>.</li>
+          <li>Use <strong>Save &amp; Quit</strong> when done — your place and timer are saved. Sessions auto-stop after 20 minutes.</li>
+        </ol>
+        <p>
+          <strong>Tip:</strong> Folder names are hints, not ground truth. A file in <code>straight</code> can also sound <code>breathy</code> — tick both. A <code>vibrato</code> file may have segments without vibrato — leave it unchecked.
+        </p>
+        <p>
+          <strong>Your labels are saved to</strong> <code>{'{data_dir}'}/labelling_results.csv</code> (not the session file in the repo).
+        </p>
+        <div className="label-guide">
+          <strong>What to listen for</strong>
+          <dl>
+            <dt>straight</dt><dd>Steady tone, little pitch wobble</dd>
+            <dt>vibrato</dt><dd>Regular pitch pulsation on sustained notes</dd>
+            <dt>belt</dt><dd>Loud, powerful, chest-forward singing</dd>
+            <dt>breathy</dt><dd>Audible air in the tone</dd>
+            <dt>noise / silence</dt><dd>Non-vocal noise or quiet gaps</dd>
+            <dt>unsure</dt><dd>Use when you genuinely cannot tell</dd>
+          </dl>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="panel">
         <h2>Configuration</h2>
 
@@ -191,7 +231,7 @@ function SetupPanel({ hasSession, session, message, onStart, onResume }) {
             type="text"
             value={dataDir}
             onChange={e => setDataDir(e.target.value)}
-            placeholder="/path/to/audio/files"
+            placeholder="/Users/you/audio_new/VocalSet_relabel"
             required
           />
         </label>
@@ -202,7 +242,7 @@ function SetupPanel({ hasSession, session, message, onStart, onResume }) {
             type="text"
             value={labels}
             onChange={e => setLabels(e.target.value)}
-            placeholder="belt, breathy, vibrato, straight"
+            placeholder="straight, vibrato, belt, breathy, unsure"
           />
           <span className="hint">'noise' and 'silence' are always included</span>
         </label>
@@ -294,7 +334,7 @@ function LabellingPanel({ progress, audioUrl, timeLeft, onConfirm, onSkip, onQui
         )}
 
         <div className="labels">
-          <p><strong>Select labels for this segment:</strong></p>
+          <p><strong>Select all labels that apply to this 0.5s clip</strong> (multi-select is expected), then confirm.</p>
           <div className="checkbox-grid">
             {progress.labels.map(label => (
               <label key={label} className={`checkbox-label ${selected.includes(label) ? 'checked' : ''}`}>

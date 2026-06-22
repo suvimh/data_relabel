@@ -8,11 +8,23 @@ import pandas as pd
 import librosa
 import soundfile as sf
 
-
 SESSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "labelling_session.json")
 MAX_SESSION_SECONDS = 20 * 60
 AUDIO_EXTENSIONS = ('*.wav', '*.mp3', '*.flac', '*.ogg', '*.m4a')
 ALWAYS_LABELS = ["noise", "silence"]
+
+
+def sync_time_remaining(state):
+    elapsed = time.time() - state.get('session_start_time', time.time())
+    state['time_remaining_sec'] = max(0, int(MAX_SESSION_SECONDS - elapsed))
+    return state['time_remaining_sec']
+
+
+def restore_session_timer(state):
+    remaining = state.get('time_remaining_sec', MAX_SESSION_SECONDS)
+    remaining = max(0, min(MAX_SESSION_SECONDS, int(remaining)))
+    state['session_start_time'] = time.time() - (MAX_SESSION_SECONDS - remaining)
+    return remaining
 
 
 def get_audio_files(data_dir):
@@ -33,6 +45,8 @@ def load_session_state():
 
 
 def save_session_state(state_dict):
+    if 'session_start_time' in state_dict:
+        sync_time_remaining(state_dict)
     serializable = {}
     for k, v in state_dict.items():
         if k in ('audio_data', 'sr'):
@@ -148,6 +162,7 @@ def init_state(data_dir, custom_labels_str, window_size, hop_size):
         'audio_data': None,
         'sr': None,
         'session_start_time': time.time(),
+        'time_remaining_sec': MAX_SESSION_SECONDS,
         'csv_path': csv_path,
         'data_dir': data_dir,
         'window_size': float(window_size),
@@ -176,7 +191,7 @@ def init_state(data_dir, custom_labels_str, window_size, hop_size):
 
 
 def resume_state(saved_state):
-    saved_state['session_start_time'] = time.time()
+    restore_session_timer(saved_state)
     saved_state['is_active'] = True
     saved_state['audio_data'] = None
     saved_state['sr'] = None

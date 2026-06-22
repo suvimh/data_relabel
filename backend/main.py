@@ -56,6 +56,7 @@ def start_session(req: StartRequest):
     if session.get("audio_data") is None:
         raise HTTPException(400, "No files to label")
 
+    core.save_session_state(session)
     return core.get_progress(session)
 
 
@@ -69,6 +70,7 @@ def resume_session():
     session, err = core.resume_state(saved)
     if err:
         raise HTTPException(400, err)
+    core.save_session_state(session)
     if session.get("audio_data") is None:
         # all done
         return {**core.get_progress(session), "done": True}
@@ -145,6 +147,7 @@ def confirm_segment(req: ConfirmRequest):
             core.clear_session_state()
             return {"done": True, "message": "All files labelled!"}
 
+    core.save_session_state(session)
     return {**core.get_progress(session), "done": False}
 
 
@@ -166,6 +169,7 @@ def skip_segment():
             core.clear_session_state()
             return {"done": True, "message": "All files labelled!"}
 
+    core.save_session_state(session)
     return {**core.get_progress(session), "done": False}
 
 

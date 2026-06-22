@@ -41,6 +41,9 @@ python-service/*.pyc
 docker-compose.override.yml
 *.dockerfile
 
+# Local labelling session state (per-machine paths)
+backend/labelling_session.json
+
 # Miscellaneous
 *.swp
 *~
