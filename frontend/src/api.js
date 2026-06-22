@@ -19,10 +19,9 @@ export async function getStatus() {
   return res.json()
 }
 
-export async function startSession(dataDir, labels, windowSize, hopSize) {
+export async function startSession(dataDir, windowSize, hopSize) {
   const res = await req('POST', '/api/session/start', {
     data_dir: dataDir,
-    labels,
     window_size: windowSize,
     hop_size: hopSize,
   })

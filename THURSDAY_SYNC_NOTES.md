@@ -28,7 +28,7 @@ This creates `~/audio_new/VocalSet_relabel` with per-file symlinks for:
 | Field | Value |
 |-------|-------|
 | Data Directory | `/Users/pubert/audio_new/VocalSet_relabel` |
-| Custom Labels | `straight, vibrato, belt, breathy, unsure` |
+| Custom Labels | *(fixed)* straight, vibrato, belt, breathy, noise, silence, unsure |
 | Window | `0.5` |
 | Hop | `0.5` |
 

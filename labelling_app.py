@@ -21,8 +21,9 @@ SESSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "labelli
 MAX_SESSION_SECONDS = 20 * 60
 AUDIO_EXTENSIONS = ('*.wav', '*.mp3', '*.flac', '*.ogg', '*.m4a')
 
-DEFAULT_LABELS_HELP = "belt, breathy, vibrato, straight"
-ALWAYS_LABELS = ["noise", "silence"]
+DEFAULT_LABELS_HELP = ", ".join(LABELS)
+ALWAYS_LABELS = ["noise", "silence"]  # legacy; use LABELS for preset list
+LABELS = ["straight", "vibrato", "belt", "breathy", "noise", "silence", "unsure"]
 
 
 def get_audio_files(data_dir):
@@ -67,9 +68,8 @@ def get_csv_path(data_dir):
 
 
 def init_csv(csv_path, labels):
-    if not os.path.exists(csv_path):
-        columns = ["file", "start_sec", "end_sec"] + labels
-        pd.DataFrame(columns=columns).to_csv(csv_path, index=False)
+    columns = ["file", "start_sec", "end_sec"] + labels
+    pd.DataFrame(columns=columns).to_csv(csv_path, index=False)
 
 
 def append_labels(csv_path, file_name, start_sec, end_sec, selected, all_labels):
@@ -171,9 +171,8 @@ def time_expired(state):
 
 # ---- Gradio callbacks ----
 
-def on_start(data_dir, custom_labels, window_size, hop_size, state_dict):
-    labels = ALWAYS_LABELS + [l.strip() for l in custom_labels.split(",") if l.strip()]
-    labels = list(dict.fromkeys(labels))
+def on_start(data_dir, _custom_labels_unused, window_size, hop_size, state_dict):
+    labels = list(LABELS)
 
     if not os.path.isdir(data_dir):
         return (
@@ -537,9 +536,7 @@ def on_load_app():
             gr.update(visible=True),
             gr.update(visible=True),
             gr.update(value=session.get('data_dir', '')),
-            gr.update(value=", ".join(
-                [l for l in session.get('labels', []) if l not in ALWAYS_LABELS]
-            )),
+            gr.update(value=DEFAULT_LABELS_HELP),
             gr.update(value=session.get('window_size', 1.0)),
             gr.update(value=session.get('hop_size', 0.5)),
             session,
@@ -606,11 +603,11 @@ def build_app():
                 info="Path to the folder containing audio files"
             )
             labels_input = gr.Textbox(
-                label="Custom Labels (comma-separated)",
-                placeholder=DEFAULT_LABELS_HELP,
-                info="'noise' and 'silence' are always added automatically"
+                label="Labels (fixed)",
+                value=DEFAULT_LABELS_HELP,
+                interactive=False,
             )
-            window_size = gr.Number(label="Window Size (seconds)", value=1.0, minimum=0.1, step=0.1)
+            window_size = gr.Number(label="Window Size (seconds)", value=0.5, minimum=0.1, step=0.1)
             hop_size = gr.Number(label="Hop / Stride (seconds)", value=0.5, minimum=0.1, step=0.1)
 
             resume_info = gr.Markdown("", visible=False)

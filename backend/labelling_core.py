@@ -11,7 +11,7 @@ import soundfile as sf
 SESSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "labelling_session.json")
 MAX_SESSION_SECONDS = 20 * 60
 AUDIO_EXTENSIONS = ('*.wav', '*.mp3', '*.flac', '*.ogg', '*.m4a')
-ALWAYS_LABELS = ["noise", "silence"]
+LABELS = ["straight", "vibrato", "belt", "breathy", "noise", "silence", "unsure"]
 
 
 def sync_time_remaining(state):
@@ -70,9 +70,8 @@ def get_csv_path(data_dir):
 
 
 def init_csv(csv_path, labels):
-    if not os.path.exists(csv_path):
-        columns = ["file", "start_sec", "end_sec"] + labels
-        pd.DataFrame(columns=columns).to_csv(csv_path, index=False)
+    columns = ["file", "start_sec", "end_sec"] + labels
+    pd.DataFrame(columns=columns).to_csv(csv_path, index=False)
 
 
 def append_labels(csv_path, file_name, start_sec, end_sec, selected, all_labels):
@@ -145,9 +144,8 @@ def _load_file(state, idx):
     state['current_file_name'] = os.path.relpath(path, state.get('data_dir', os.path.dirname(path)))
 
 
-def init_state(data_dir, custom_labels_str, window_size, hop_size):
-    labels = ALWAYS_LABELS + [l.strip() for l in custom_labels_str.split(",") if l.strip()]
-    labels = list(dict.fromkeys(labels))
+def init_state(data_dir, window_size, hop_size):
+    labels = list(LABELS)
 
     files = get_audio_files(data_dir)
     csv_path = get_csv_path(data_dir)
@@ -192,6 +190,7 @@ def init_state(data_dir, custom_labels_str, window_size, hop_size):
 
 def resume_state(saved_state):
     restore_session_timer(saved_state)
+    saved_state['labels'] = list(LABELS)
     saved_state['is_active'] = True
     saved_state['audio_data'] = None
     saved_state['sr'] = None

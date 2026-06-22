@@ -26,8 +26,7 @@ session = {}
 
 class StartRequest(BaseModel):
     data_dir: str
-    labels: str
-    window_size: float = 1.0
+    window_size: float = 0.5
     hop_size: float = 0.5
 
 
@@ -49,7 +48,7 @@ def start_session(req: StartRequest):
         raise HTTPException(400, "Invalid directory path")
 
     core.clear_session_state()
-    session, err = core.init_state(req.data_dir, req.labels, req.window_size, req.hop_size)
+    session, err = core.init_state(req.data_dir, req.window_size, req.hop_size)
 
     if err:
         raise HTTPException(400, err)
@@ -126,6 +125,9 @@ def confirm_segment(req: ConfirmRequest):
     end = session["current_segment_end"]
 
     selected = list(req.selected_labels) if req.selected_labels else []
+    invalid = set(selected) - set(core.LABELS)
+    if invalid:
+        raise HTTPException(400, f"Invalid labels: {', '.join(sorted(invalid))}")
     core.append_labels(
         session["csv_path"], fname, start, end,
         selected, session["labels"]

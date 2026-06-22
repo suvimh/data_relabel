@@ -1,11 +1,11 @@
 {
   "labels": [
-    "noise",
-    "silence",
     "straight",
     "vibrato",
     "belt",
     "breathy",
+    "noise",
+    "silence",
     "unsure"
   ],
   "audio_files": [
@@ -265,10 +265,10 @@
     "/Users/pubert/audio_new/VocalSet_relabel/vibrato/m5_scales_vibrato_u.wav"
   ],
   "current_file_idx": 0,
-  "current_segment_start": 3.5,
-  "segment_num": 7,
-  "session_start_time": 1782132117.274583,
-  "time_remaining_sec": 936,
+  "current_segment_start": 0.0,
+  "segment_num": 0,
+  "session_start_time": 1782142920.282915,
+  "time_remaining_sec": 1197,
   "csv_path": "/Users/pubert/audio_new/VocalSet_relabel/labelling_results.csv",
   "data_dir": "/Users/pubert/audio_new/VocalSet_relabel",
   "window_size": 0.5,
@@ -276,5 +276,5 @@
   "is_active": true,
   "file_duration": 6.1401360544217685,
   "current_file_name": "belt/f2_arpeggios_belt_a.wav",
-  "current_segment_end": 4.0
+  "current_segment_end": 0.5
 }

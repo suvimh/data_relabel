@@ -48,7 +48,9 @@ def main():
     import labelling_core as core
 
     check("20-minute timeout constant", core.MAX_SESSION_SECONDS == 20 * 60)
-    check("noise/silence auto-included", core.ALWAYS_LABELS == ["noise", "silence"])
+    check("preset labels", core.LABELS == [
+        "straight", "vibrato", "belt", "breathy", "noise", "silence", "unsure",
+    ])
 
     wav_count = len(core.get_audio_files(DATA_DIR))
     check("254 validation audio files", wav_count == 254, f"found {wav_count}")
@@ -67,13 +69,12 @@ def main():
 
     start = api("POST", "/api/session/start", {
         "data_dir": DATA_DIR,
-        "labels": "straight, vibrato, belt, breathy, unsure",
         "window_size": 0.5,
         "hop_size": 0.5,
     })
 
     labels = start.get("labels", [])
-    expected = ["noise", "silence", "straight", "vibrato", "belt", "breathy", "unsure"]
+    expected = ["straight", "vibrato", "belt", "breathy", "noise", "silence", "unsure"]
     check("All 7 label types available", labels == expected, str(labels))
     check("0.5s segment window", start.get("end_sec", 0) - start.get("start_sec", 0) == 0.5)
     check("258 files NOT loaded (filtered)", start.get("total_files") == 254)

@@ -119,6 +119,33 @@ input:focus {
   box-shadow: 0 0 0 3px rgba(74,144,217,0.15);
 }
 
+.preset-labels {
+  margin-bottom: 0.75rem;
+}
+
+.preset-labels-title {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #444;
+  margin-bottom: 0.4rem;
+}
+
+.preset-labels-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.preset-label-chip {
+  font-size: 0.82rem;
+  padding: 0.25rem 0.6rem;
+  background: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
 .hint {
   display: block;
   font-size: 0.8rem;

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import * as api from './api'
 
 const MAX_SESSION_SECONDS = 20 * 60
+const PRESET_LABELS = ['straight', 'vibrato', 'belt', 'breathy', 'noise', 'silence', 'unsure']
 
 export default function App() {
   const [step, setStep] = useState('loading') // loading | setup | labelling | summary
@@ -43,9 +44,9 @@ export default function App() {
     setAudioUrl(null)
   }, [])
 
-  async function handleStart(dataDir, labels, windowSize, hopSize) {
+  async function handleStart(dataDir, windowSize, hopSize) {
     try {
-      const prog = await api.startSession(dataDir, labels, windowSize, hopSize)
+      const prog = await api.startSession(dataDir, windowSize, hopSize)
       const remaining = prog.time_remaining_sec ?? MAX_SESSION_SECONDS
       setProgress(prog)
       setTimeLeft(remaining)
@@ -175,18 +176,13 @@ export default function App() {
 
 function SetupPanel({ hasSession, session, message, onStart, onResume }) {
   const [dataDir, setDataDir] = useState(session?.data_dir || '')
-  const [labels, setLabels] = useState(
-    session?.labels
-      ? session.labels.filter(l => l !== 'noise' && l !== 'silence').join(', ')
-      : 'straight, vibrato, belt, breathy, unsure'
-  )
   const [windowSize, setWindowSize] = useState(session?.window_size ?? 0.5)
   const [hopSize, setHopSize] = useState(session?.hop_size ?? 0.5)
 
   function handleSubmit(e) {
     e.preventDefault()
     if (!dataDir.trim()) return
-    onStart(dataDir.trim(), labels, windowSize, hopSize)
+    onStart(dataDir.trim(), windowSize, hopSize)
   }
 
   return (
@@ -197,9 +193,8 @@ function SetupPanel({ hasSession, session, message, onStart, onResume }) {
         <h2>How to use this app</h2>
         <ol>
           <li>Set <strong>Data Directory</strong> to your parent folder of audio files (e.g. VocalSet relabel folder).</li>
-          <li>Enter custom labels below — <code>noise</code> and <code>silence</code> are added automatically.</li>
           <li>Use <strong>Window</strong> and <strong>Hop</strong> of <code>0.5</code> for 0.5-second segments.</li>
-          <li>Click <strong>Start Labelling</strong> (or <strong>Resume Previous Session</strong> to continue).</li>
+          <li>Click <strong>Start Labelling</strong> for a fresh run (clears previous CSV results), or <strong>Resume Previous Session</strong> to continue.</li>
           <li>Listen to each clip, tick <em>every</em> label that applies, then click <strong>Confirm Labels</strong>.</li>
           <li>Use <strong>Save &amp; Quit</strong> when done — your place and timer are saved. Sessions auto-stop after 20 minutes.</li>
         </ol>
@@ -236,16 +231,14 @@ function SetupPanel({ hasSession, session, message, onStart, onResume }) {
           />
         </label>
 
-        <label>
-          Custom Labels (comma-separated)
-          <input
-            type="text"
-            value={labels}
-            onChange={e => setLabels(e.target.value)}
-            placeholder="straight, vibrato, belt, breathy, unsure"
-          />
-          <span className="hint">'noise' and 'silence' are always included</span>
-        </label>
+        <div className="preset-labels">
+          <span className="preset-labels-title">Labels (fixed)</span>
+          <div className="preset-labels-list">
+            {PRESET_LABELS.map(label => (
+              <span key={label} className="preset-label-chip">{label}</span>
+            ))}
+          </div>
+        </div>
 
         <div className="row">
           <label>
