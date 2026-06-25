@@ -44,6 +44,10 @@ docker-compose.override.yml
 # Local labelling session state (per-machine paths)
 backend/labelling_session.json
 
+# External dataset folders
+FULL/
+VocalSet - original/FULL/
+
 # Miscellaneous
 *.swp
 *~
