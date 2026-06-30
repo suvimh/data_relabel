@@ -29,7 +29,7 @@ processes.append(p1)
 
 print("Starting frontend...")
 p2 = subprocess.Popen(
-    ['npx', 'vite', '--host', '127.0.0.1'],
+    ['npx.cmd', 'vite', '--host', '127.0.0.1'],
     cwd=FRONTEND_DIR,
 )
 processes.append(p2)
