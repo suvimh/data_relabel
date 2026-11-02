@@ -12,6 +12,10 @@ body {
   padding: 0 1rem;
 }
 
+.labelling-container {
+  max-width: 1120px;
+}
+
 h1 {
   font-size: 1.5rem;
   font-weight: 700;
@@ -42,7 +46,8 @@ label {
 }
 
 input[type="text"],
-input[type="number"] {
+input[type="number"],
+select {
   display: block;
   width: 100%;
   padding: 0.6rem 0.75rem;
@@ -202,3 +207,79 @@ audio {
 }
 
 .checkbox-label input { display: none; }
+
+.label-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.label-group {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.9rem;
+}
+
+.label-group h3 {
+  color: #333;
+  font-size: 0.95rem;
+  margin-bottom: 0.6rem;
+}
+
+.annotation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.8fr);
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-top: 1px solid #eee;
+}
+
+.annotation-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.65rem;
+  margin: 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.annotation-checkbox input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: #1a73e8;
+  cursor: pointer;
+}
+
+.annotation-checkbox span {
+  color: #333;
+  font-weight: 600;
+}
+
+.annotation-row label {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.annotation-row select {
+  margin-top: 0.25rem;
+  padding: 0.45rem;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 600px) {
+  .label-groups {
+    grid-template-columns: 1fr;
+  }
+
+  .annotation-row {
+    grid-template-columns: minmax(0, 1fr) minmax(110px, 0.8fr);
+  }
+}

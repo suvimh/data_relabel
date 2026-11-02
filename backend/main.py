@@ -1,10 +1,12 @@
 import os
 import sys
 import time
+from typing import Literal, Optional
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
@@ -26,20 +28,30 @@ session = {}
 
 class StartRequest(BaseModel):
     data_dir: str
-    labels: str
-    window_size: float = 1.0
-    hop_size: float = 0.5
+    window_size: float = Field(default=1.0, gt=0)
+    hop_size: float = Field(default=0.5, gt=0)
+
+
+class LabelAnnotation(BaseModel):
+    state: Literal[0, 1]
+    confidence: Optional[Literal[1, 2]] = None
 
 
 class ConfirmRequest(BaseModel):
-    selected_labels: list[str] = []
+    annotations: dict[str, LabelAnnotation] = Field(default_factory=dict)
 
 
 @app.get("/api/session/status")
 def get_status():
     saved = core.load_session_state()
     has_session = saved is not None and bool(saved.get("audio_files"))
-    return {"has_session": has_session, "session": saved}
+    safe_session = None
+    if has_session:
+        safe_session = {
+            "window_size": saved.get("window_size", 1.0),
+            "hop_size": saved.get("hop_size", 0.5),
+        }
+    return {"has_session": has_session, "session": safe_session}
 
 
 @app.post("/api/session/start")
@@ -49,9 +61,10 @@ def start_session(req: StartRequest):
         raise HTTPException(400, "Invalid directory path")
 
     core.clear_session_state()
-    session, err = core.init_state(req.data_dir, req.labels, req.window_size, req.hop_size)
+    session, err = core.init_state(req.data_dir, req.window_size, req.hop_size)
 
     if err:
+        session = {}
         raise HTTPException(400, err)
     if session.get("audio_data") is None:
         raise HTTPException(400, "No files to label")
@@ -70,7 +83,10 @@ def resume_session():
     if err:
         raise HTTPException(400, err)
     if session.get("audio_data") is None:
-        # all done
+        core.write_recording_key(
+            session["data_dir"], session["valid_audio_files"], session["recording_ids"]
+        )
+        core.clear_session_state()
         return {**core.get_progress(session), "done": True}
 
     return {**core.get_progress(session), "done": False}
@@ -119,14 +135,26 @@ def confirm_segment(req: ConfirmRequest):
     if session.get("audio_data") is None:
         raise HTTPException(400, "No active session")
 
-    fname = session["current_file_name"]
+    expected_labels = set(session["labels"])
+    submitted_labels = set(req.annotations)
+    if submitted_labels != expected_labels:
+        raise HTTPException(400, "Submit a present or absent state for every label.")
+    for label, annotation in req.annotations.items():
+        if annotation.state == 1 and annotation.confidence is None:
+            raise HTTPException(400, f"Choose a confidence for {label}.")
+        if annotation.state == 0 and annotation.confidence is not None:
+            raise HTTPException(400, f"Confidence is only used for present labels ({label}).")
+
+    recording_id = session["current_recording_id"]
     start = session["current_segment_start"]
     end = session["current_segment_end"]
-
-    selected = list(req.selected_labels) if req.selected_labels else []
-    core.append_labels(
-        session["csv_path"], fname, start, end,
-        selected, session["labels"]
+    annotations = {
+        label: {"state": value.state, "confidence": value.confidence}
+        for label, value in req.annotations.items()
+    }
+    core.append_annotations(
+        session["csv_path"], recording_id, start, end,
+        annotations, session["labels"]
     )
 
     # check timeout
@@ -136,14 +164,13 @@ def confirm_segment(req: ConfirmRequest):
         session["is_active"] = False
         return {"done": True, "timeout": True, "message": "Session timed out (20 min). Progress saved."}
 
-    # advance
     if not core.advance_segment(session):
-        # file done, try next
-        if not core.advance_file(session):
-            # all done
-            session["is_active"] = False
-            core.clear_session_state()
-            return {"done": True, "message": "All files labelled!"}
+        session["is_active"] = False
+        core.write_recording_key(
+            session["data_dir"], session["valid_audio_files"], session["recording_ids"]
+        )
+        core.clear_session_state()
+        return {"done": True, "message": "All files labelled!"}
 
     return {**core.get_progress(session), "done": False}
 
@@ -161,10 +188,12 @@ def skip_segment():
         return {"done": True, "timeout": True, "message": "Session timed out (20 min). Progress saved."}
 
     if not core.advance_segment(session):
-        if not core.advance_file(session):
-            session["is_active"] = False
-            core.clear_session_state()
-            return {"done": True, "message": "All files labelled!"}
+        session["is_active"] = False
+        core.write_recording_key(
+            session["data_dir"], session["valid_audio_files"], session["recording_ids"]
+        )
+        core.clear_session_state()
+        return {"done": True, "message": "All files labelled!"}
 
     return {**core.get_progress(session), "done": False}
 
@@ -177,7 +206,6 @@ def save_session():
     return {"success": True}
 
 
-import os as os_mod
 @app.on_event("startup")
 def startup():
     global session

@@ -29,7 +29,7 @@ processes.append(p1)
 
 print("Starting frontend...")
 p2 = subprocess.Popen(
-    ['npx.cmd', 'vite', '--host', '127.0.0.1'],
+    ['node', os.path.join(FRONTEND_DIR, 'node_modules', 'vite', 'bin', 'vite.js'), '--host', '127.0.0.1'],
     cwd=FRONTEND_DIR,
 )
 processes.append(p2)
